@@ -1,0 +1,130 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Charging Station Heatmap</title>
+	<meta charset="utf-8" />
+
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+	<link rel="stylesheet" href="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.css" />
+	<script src="http://cdn.leafletjs.com/leaflet/v0.7.7/leaflet.js"></script>
+</head>
+
+<body>
+	<h1>EV Charging Heatmap</h1>
+	<p>This map indicates the existing and potential electric vehicle charging stations in Salt Lake City</p>
+	<p>Heat represents the ability of attracting vehicles for charging (related to  the size and number of charging piles)</p>
+	<p>You can add multiple potential EV charging stations based on this heatmap after clicking the button.</p>
+	<p>Please adjust the heat size (0-6,000) value: <span id="value"></span></p>
+	<div class="sliderContainer">
+		<input type="range" min="0" max="6000" value="2000" id="myrange" class="slider" oninput="changemap()">
+	</div>	
+	
+	<link rel="stylesheet" href="../dist/MarkerCluster.css" />
+	<link rel="stylesheet" href="../dist/MarkerCluster.Default.css" />
+	<script src="../dist/leaflet.markercluster-src.js"></script>
+	
+	<script type="text/javascript" src="../js/webgl-heatmap.js"></script>
+	<script type="text/javascript" src="../js/webgl-heatmap-leaflet.js"></script>
+
+	<button onclick="addmultiple()">Add Multiple Stations</button>
+	<br><br>
+	<div id="map" style="width: 600px; height: 600px"></div>
+	
+	<script type="text/javascript" src="station.js"></script>
+	
+	<script>
+	
+	var dots = new L.LayerGroup(); 
+	
+	var mbAttr = 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, ' +
+			'<a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, ' +
+			'Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+		mbUrl = 'https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibWFwYm94IiwiYSI6ImNpejY4NXVycTA2emYycXBndHRqcmZ3N3gifQ.rJcFIG214AriISLbB6B5aw';
+
+	var streets  = L.tileLayer(mbUrl, {id: 'mapbox/streets-v11', tileSize: 512, zoomOffset: -1, attribution: mbAttr}),
+		grayscale   = L.tileLayer(mbUrl, {id: 'mapbox/light-v9', tileSize: 512, zoomOffset: -1, attribution: mbAttr});	
+
+	var baseLayers = {
+			"Streets": streets,
+			"Grayscale": grayscale
+		};
+		
+	var map = L.map('map', {
+			center: [40.758398	,	-111.8837046],
+			zoom: 11,
+			layers: [grayscale]
+		});
+
+//////////// Start of Point Map ////////////////////
+	for (var i = 0; i < data.length; i++) {
+		point = data[i];
+		L.circle([point[0], point[1]], 180, {color: 'blue',fillColor: 'blue',weight:1,fillOpacity: 0.3}).addTo(dots);
+		//L.marker([point[0], point[1]]).addTo(dots).bindPopup(point[3]);
+	}				
+	map.addLayer(dots);	
+		
+//------End of Point Map -----------------------------
+
+//////////// Start of Heatmap ////////////////////
+	var slider = document.getElementById('myrange');
+	var output = document.getElementById('value');
+	var x = Number(slider.value);
+	output.innerHTML = slider.value;
+	
+	var heatmap = new L.TileLayer.WebGLHeatMap({ gradientTexture: false, size: x, alphaRange:0.0000001, autoresize: true, opacity: 0.5});
+	heatmap.setData(data)
+
+	map.addLayer(heatmap);		
+//		slider.oninput = function() {
+//		var heatmap = new L.TileLayer.WebGLHeatMap({ gradientTexture: false, size: x, alphaRange:0.0000001, autoresize: true, opacity: 0.5});
+//	}
+
+//------End of Heatmap -----------------------------	
+
+//////////// Start of Adding Point ////////////////////
+
+function addmultiple(){
+	alert("You can multiple EV charging stations on the map now!");
+
+	var markerGroup = L.layerGroup();
+		markerGroup.addTo(map);
+		map.on('click',function(e){
+			//markerGroup = [];
+			var marker = L.marker(e.latlng);
+			//markerGroup.clearLayers();
+			marker.addTo(markerGroup);
+			return
+	});
+}
+
+//------End of Adding Point -----------------------------
+		
+//////////// Start of Changing Heatmap ////////////////////
+function changemap(){
+
+	slider.oninput = function() {
+		output.innerHTML = this.value;
+		x = Number(this.value);
+		y = x;
+		map.removeLayer(heatmap);
+		heatmap = new L.TileLayer.WebGLHeatMap({ gradientTexture: false, size: x, alphaRange:0.0000001, autoresize: true, opacity: 0.5});
+		heatmap.setData(data);
+		//heatmap.setData(NEW);
+		map.addLayer(heatmap);	
+	}
+	
+//------End of Changing Heatmap -----------------------------
+}
+//////////// Start of Legend ////////////////////
+	var overlays = {
+		"stations": dots
+	};
+	L.control.layers(baseLayers, overlays).addTo(map);
+
+//------End of Legend -----------------------------	
+
+	</script>
+</body>
+</html>
